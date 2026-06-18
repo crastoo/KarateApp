@@ -1,0 +1,19 @@
+# Environment
+venv/
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build and dist folders (PyInstaller)
+build/
+dist/
+
+# Local databases
+competitions.json
