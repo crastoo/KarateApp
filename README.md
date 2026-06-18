@@ -1,6 +1,17 @@
 # Karate Manager 🥋🏆
 
-O **Karate Manager** é uma aplicação desktop desenvolvida em Python e PyQt6 concebida para simplificar a organização, gestão e exibição de competições de karaté (KATA/KUMITE). A aplicação suporta tanto torneios **individuais** como em **equipa**, oferecendo um sistema interativo de brackets (chaves de torneio) com suporte a arrastar-e-soltar (drag-and-drop) e uma consola administrativa integrada com ecrã secundário de apresentação para o público e júri.
+O **Karate Manager** é uma aplicação desktop desenvolvida em Python e PyQt6 concebida para simplificar a organização, gestão e exibição de competições de karaté (IRIKUMI/KUMITE). A aplicação suporta tanto torneios **individuais** como em **equipa**, oferecendo um sistema interativo de brackets (chaves de torneio) com suporte a arrastar-e-soltar (drag-and-drop) e uma consola administrativa integrada com ecrã secundário de apresentação para o público e júri.
+
+---
+
+## 🙏 Agradecimentos Especiais
+
+Um agradecimento honorífico e profundo ao **Clube Karate Budo Dojo**. Esta aplicação foi inspirada e moldada pela vivência dentro do dojo. Deixo uma menção especial de gratidão a toda a estrutura, mestres e colegas:
+* Pela total **confiança** depositada no meu percurso.
+* Pelos **10 anos de treino**, dedicação e ensinamentos valiosos que me proporcionaram, tanto nas artes marciais como para a vida.
+* Pelo exigente caminho e conquista do **cinto negro** 🥋, um marco que carrego com imenso orgulho.
+
+*Arigato!*
 
 ---
 
