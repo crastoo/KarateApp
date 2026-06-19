@@ -107,14 +107,13 @@ class AthletePool(QListWidget):
         if len(parts) < 3:
             return
         athlete_id = parts[2]
-        if len(parts) >= 5:
-            p = self.parentWidget()
-            while p:
-                if hasattr(p, "remove_athlete_from_brackets"):
-                    p.remove_athlete_from_brackets(athlete_id)
-                    e.acceptProposedAction()
-                    break
-                p = p.parentWidget()
+        p = self.parentWidget()
+        while p:
+            if hasattr(p, "remove_athlete_from_brackets"):
+                p.remove_athlete_from_brackets(athlete_id)
+                e.acceptProposedAction()
+                break
+            p = p.parentWidget()
  
  
 # ─── Match slot cell ───────────────────────────────────────────────────────────
@@ -638,6 +637,9 @@ class BracketCanvas(QWidget):
                     self._refresh_slot(o2)
  
         # Place into target slot
+        match = comp.get_match(match_id)
+        if match is None:
+            return
         if slot_str == "aka":
             match.aka_id = athlete_id
         else:
