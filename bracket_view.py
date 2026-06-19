@@ -25,7 +25,10 @@ MIME_TYPE = "application/x-karate-athlete"
  
 class AthleteListItem(QListWidgetItem):
     def __init__(self, athlete: Athlete):
-        if athlete.name == athlete.dojo or not athlete.dojo:
+        members = getattr(athlete, "members", [])
+        if members:
+            super().__init__(f"{athlete.name}\n({', '.join(members)})")
+        elif athlete.name == athlete.dojo or not athlete.dojo:
             super().__init__(athlete.name)
         else:
             super().__init__(f"{athlete.name}  ·  {athlete.dojo}")
@@ -242,7 +245,10 @@ class MatchSlot(QFrame):
                 self.aka_name_lbl.setText(name)
                 self.aka_name_lbl.setStyleSheet(f"color: {'#FFD700' if is_winner else theme.TEXT_PRIMARY}; background: transparent; font-weight: {'bold' if is_winner else 'normal'};")
                 if name == dojo or not dojo:
-                    self.aka_dojo_lbl.setText("")
+                    if members:
+                        self.aka_dojo_lbl.setText(", ".join(members))
+                    else:
+                        self.aka_dojo_lbl.setText("")
                 else:
                     self.aka_dojo_lbl.setText(dojo)
                 parts = []
@@ -271,7 +277,10 @@ class MatchSlot(QFrame):
                 self.ao_name_lbl.setText(name)
                 self.ao_name_lbl.setStyleSheet(f"color: {'#FFD700' if is_winner else theme.TEXT_PRIMARY}; background: transparent; font-weight: {'bold' if is_winner else 'normal'};")
                 if name == dojo or not dojo:
-                    self.ao_dojo_lbl.setText("")
+                    if members:
+                        self.ao_dojo_lbl.setText(", ".join(members))
+                    else:
+                        self.ao_dojo_lbl.setText("")
                 else:
                     self.ao_dojo_lbl.setText(dojo)
                 parts = []

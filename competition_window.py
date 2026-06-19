@@ -148,10 +148,10 @@ class EditTeamRow(QFrame):
         members_lay.setSpacing(10)
 
         self.member_edits = []
-        for i in range(3):
+        for i in range(4):
             val = members[i] if i < len(members) else ""
             edit = QLineEdit(val)
-            edit.setPlaceholderText(f"Atleta {i+1}" + (" (Opcional)" if i == 2 else ""))
+            edit.setPlaceholderText(f"Atleta {i+1}" + (" (Opcional)" if i >= 2 else ""))
             members_lay.addWidget(edit)
             self.member_edits.append(edit)
         lay.addLayout(members_lay)

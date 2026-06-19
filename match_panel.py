@@ -515,14 +515,19 @@ class SelectAthletesDialog(QDialog):
         self.setMinimumWidth(400)
         self.setStyleSheet(f"QDialog {{ background-color: {theme.BG_PANEL}; }}")
         
-        # Filter members who haven't fought yet; if all have fought, allow all
-        self.available_aka = [m for m in aka_members if m not in already_fought_aka]
-        if not self.available_aka:
-            self.available_aka = aka_members
-            
-        self.available_ao = [m for m in ao_members if m not in already_fought_ao]
-        if not self.available_ao:
-            self.available_ao = ao_members
+        # Filter members dynamically based on minimum number of fights to satisfy rules:
+        # - If team 3 vs 2: one of team 2 fights twice
+        # - If team 4 vs 2: both of team 2 fight twice
+        # - If team 4 vs 3: one of team 3 fights twice
+        def get_eligible(members, already_fought):
+            if not members:
+                return []
+            counts = {m: already_fought.count(m) for m in members}
+            min_count = min(counts.values())
+            return [m for m in members if counts[m] == min_count]
+
+        self.available_aka = get_eligible(aka_members, already_fought_aka)
+        self.available_ao = get_eligible(ao_members, already_fought_ao)
         
         lay = QVBoxLayout(self)
         lay.setContentsMargins(20, 20, 20, 20)
@@ -969,8 +974,14 @@ class MatchPanel(QDialog):
 
     def _update_round_title(self):
         curr_round = len(self._sub_matches) + 1
-        if curr_round > 3:
-            curr_round = 3
+        if self.competition.is_team:
+            aka_members = self.aka_athlete.members if self.aka_athlete else []
+            ao_members = self.ao_athlete.members if self.ao_athlete else []
+            max_rounds = max(2, len(aka_members), len(ao_members))
+        else:
+            max_rounds = 3
+        if curr_round > max_rounds:
+            curr_round = max_rounds
         prefix = "COMBATE" if self.competition.is_team else "RONDA"
         if self._result:
             self.round_lbl.setText("— LUTA CONCLUÍDA")
@@ -1495,8 +1506,14 @@ class MatchPanel(QDialog):
         self.presentation.update_timer(self.timer.get_remaining())
         
         curr_round = len(self._sub_matches) + 1
-        if curr_round > 3:
-            curr_round = 3
+        if self.competition.is_team:
+            aka_members = self.aka_athlete.members if self.aka_athlete else []
+            ao_members = self.ao_athlete.members if self.ao_athlete else []
+            max_rounds = max(2, len(aka_members), len(ao_members))
+        else:
+            max_rounds = 3
+        if curr_round > max_rounds:
+            curr_round = max_rounds
         self.presentation.update_round(curr_round, is_completed=(self._result is not None and self._result.winner_id is not None), is_team=self.competition.is_team)
         
         if self._result and self._result.winner_id is not None:
