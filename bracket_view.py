@@ -692,8 +692,10 @@ class BracketCanvas(QWidget):
             return  # empty slot
  
         panel = MatchPanel(match, comp, self.presentation, self)
-        panel.match_completed.connect(lambda result: self._on_match_complete(match_id, result))
-        panel.exec()
+        panel.match_completed.connect(lambda res: self._on_match_complete(match_id, res))
+        # Keep a reference and show as non-modal so it doesn't block other windows
+        self.current_match_panel = panel
+        panel.show()
  
     def _on_match_complete(self, match_id: str, result):
         comp = self.competition

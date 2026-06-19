@@ -4,7 +4,7 @@ No controls, only data. Mirrors what the admin sees in live mode.
 """
  
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-                              QSizePolicy, QGraphicsOpacityEffect)
+                              QSizePolicy, QGraphicsOpacityEffect, QGridLayout)
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty
 from PyQt6.QtGui import QFont, QColor, QPainter, QPen, QBrush, QPainterPath, QMouseEvent, QKeyEvent
  
@@ -382,22 +382,38 @@ class PresentationWindow(QWidget):
         else:
             super().mouseReleaseEvent(event)
 
+    def toggle_fullscreen(self):
+        if self.isFullScreen():
+            self.showNormal()
+        else:
+            from PyQt6.QtWidgets import QApplication
+            screen = None
+            app = QApplication.instance()
+            if app:
+                # Find screen containing the window geometry's center point
+                window_center = self.geometry().center()
+                for s in app.screens():
+                    if s.geometry().contains(window_center):
+                        screen = s
+                        break
+            if not screen:
+                screen = self.screen()
+            
+            if screen:
+                self.setScreen(screen)
+                self.move(screen.geometry().topLeft())
+            self.showFullScreen()
+
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
-            if self.isFullScreen():
-                self.showNormal()
-            else:
-                self.showFullScreen()
+            self.toggle_fullscreen()
             event.accept()
         else:
             super().mouseDoubleClickEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent):
         if event.key() == Qt.Key.Key_F11:
-            if self.isFullScreen():
-                self.showNormal()
-            else:
-                self.showFullScreen()
+            self.toggle_fullscreen()
             event.accept()
         elif event.key() == Qt.Key.Key_Escape:
             if self.isFullScreen():
@@ -464,7 +480,7 @@ class PresentationWindow(QWidget):
                 border: none;
             }}
         """)
-        bb_lay = QHBoxLayout(bottom_bar)
+        bb_lay = QGridLayout(bottom_bar)
         bb_lay.setContentsMargins(30, 10, 30, 10)
         
         self.tatami_label = QLabel("TATAMI —")
@@ -474,11 +490,13 @@ class PresentationWindow(QWidget):
             letter-spacing: 2px;
         """)
         self.tatami_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        bb_lay.addWidget(self.tatami_label, 1)
+        self.tatami_label.setWordWrap(True)
+        self.tatami_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        bb_lay.addWidget(self.tatami_label, 0, 0)
         
         self.timer_display = TimerDisplay(self)
         self.timer_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bb_lay.addWidget(self.timer_display, 1)
+        bb_lay.addWidget(self.timer_display, 0, 1)
         
         self.category_label = QLabel("ESCALÃO —")
         self.category_label.setStyleSheet(f"""
@@ -487,7 +505,14 @@ class PresentationWindow(QWidget):
             letter-spacing: 1px;
         """)
         self.category_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        bb_lay.addWidget(self.category_label, 1)
+        self.category_label.setWordWrap(True)
+        self.category_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        bb_lay.addWidget(self.category_label, 0, 2)
+        
+        # Set stretch to ensure the timer is always perfectly centered
+        bb_lay.setColumnStretch(0, 1)
+        bb_lay.setColumnStretch(1, 0)
+        bb_lay.setColumnStretch(2, 1)
         
         root.addWidget(bottom_bar)
 

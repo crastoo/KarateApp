@@ -957,11 +957,7 @@ class MatchPanel(QDialog):
                 self.presentation.hide()
                 self.pres_btn.setText("📺  Mostrar Apresentação")
             else:
-                self.presentation.show()
-                from PyQt6.QtWidgets import QApplication
-                screens = QApplication.screens()
-                if len(screens) > 1:
-                    self.presentation.showFullScreen()
+                self.presentation.showNormal()
                 self.pres_btn.setText("📺  Apresentação")
 
     def _show_existing_result(self):
