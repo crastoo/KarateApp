@@ -333,10 +333,7 @@ class EditCompetitionDialog(QDialog):
             QMessageBox.warning(self, "Campo em falta", "Por favor insira o nome da competição.")
             self.name_edit.setFocus()
             return
-        if not tatami:
-            QMessageBox.warning(self, "Campo em falta", "Por favor insira o número do tatami.")
-            self.tatami_edit.setFocus()
-            return
+
         if not category:
             QMessageBox.warning(self, "Campo em falta", "Por favor insira o escalão.")
             self.category_edit.setFocus()
@@ -461,7 +458,8 @@ class CompetitionWindow(QMainWindow):
         sep1 = QLabel("·")
         sep1.setStyleSheet(f"color: {theme.TEXT_MUTED}; background: transparent;")
         tb_lay.addWidget(sep1)
-        self.tatami_lbl = QLabel(f"Tatami {self.competition.tatami}")
+        tatami_text = f"Tatami {self.competition.tatami}" if self.competition.tatami else "Sem Tatami"
+        self.tatami_lbl = QLabel(tatami_text)
         self.tatami_lbl.setFont(QFont(theme.FONT_FAMILY, 12))
         self.tatami_lbl.setStyleSheet(f"color: {theme.TEXT_SEC}; background: transparent;")
         tb_lay.addWidget(self.tatami_lbl)
@@ -519,7 +517,8 @@ class CompetitionWindow(QMainWindow):
             # Update Window title and header labels
             self.setWindowTitle(f"Karate Manager — {self.competition.name}")
             self.name_lbl.setText(self.competition.name)
-            self.tatami_lbl.setText(f"Tatami {self.competition.tatami}")
+            tatami_text = f"Tatami {self.competition.tatami}" if self.competition.tatami else "Sem Tatami"
+            self.tatami_lbl.setText(tatami_text)
             self.category_lbl.setText(self.competition.category)
             self.date_lbl.setText(self.competition.date)
             self.athletes_lbl.setText(f"{len(self.competition.athletes)} atletas")

@@ -325,10 +325,7 @@ class CreateCompetitionDialog(QDialog):
             QMessageBox.warning(self, "Campo em falta", "Por favor insira o nome da competição.")
             self.name_edit.setFocus()
             return
-        if not tatami:
-            QMessageBox.warning(self, "Campo em falta", "Por favor insira o número do tatami.")
-            self.tatami_edit.setFocus()
-            return
+
         if not category:
             QMessageBox.warning(self, "Campo em falta", "Por favor insira o escalão.")
             self.category_edit.setFocus()

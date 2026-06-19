@@ -978,6 +978,8 @@ class MatchPanel(QDialog):
             aka_members = self.aka_athlete.members if self.aka_athlete else []
             ao_members = self.ao_athlete.members if self.ao_athlete else []
             max_rounds = max(2, len(aka_members), len(ao_members))
+            if len(aka_members) == 2 and len(ao_members) == 2:
+                max_rounds = 3
         else:
             max_rounds = 3
         if curr_round > max_rounds:
@@ -1042,6 +1044,8 @@ class MatchPanel(QDialog):
             aka_members = self.aka_athlete.members if self.aka_athlete else []
             ao_members = self.ao_athlete.members if self.ao_athlete else []
             max_possible_fights = max(len(aka_members), len(ao_members))
+            if len(aka_members) == 2 and len(ao_members) == 2:
+                max_possible_fights = 3
             
             majority_wins = (max_possible_fights // 2) + 1
             if self._aka_sub_wins >= majority_wins:
@@ -1510,6 +1514,8 @@ class MatchPanel(QDialog):
             aka_members = self.aka_athlete.members if self.aka_athlete else []
             ao_members = self.ao_athlete.members if self.ao_athlete else []
             max_rounds = max(2, len(aka_members), len(ao_members))
+            if len(aka_members) == 2 and len(ao_members) == 2:
+                max_rounds = 3
         else:
             max_rounds = 3
         if curr_round > max_rounds:
