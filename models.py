@@ -5,11 +5,22 @@ models.py — Data models and local JSON persistence for Karate Manager
 import json
 import uuid
 import os
+import sys
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from typing import Optional
  
-DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "competitions.json")
+def get_db_path() -> str:
+    if getattr(sys, 'frozen', False):
+        # Running as a packaged executable (PyInstaller)
+        # Save in the directory where the executable is located
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        # Running from source
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, "competitions.json")
+ 
+DB_FILE = get_db_path()
  
  
 @dataclass
