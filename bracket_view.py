@@ -37,14 +37,15 @@ class AthleteListItem(QListWidgetItem):
         members = getattr(athlete, "members", [])
         if members:
             self.setToolTip(f"Atletas: {', '.join(members)}")
- 
- 
+
+
 class AthletePool(QListWidget):
     """Left panel showing unplaced athletes, draggable."""
- 
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setDragEnabled(True)
+        self.setAcceptDrops(True)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.setStyleSheet(f"""
             QListWidget {{
@@ -67,7 +68,7 @@ class AthletePool(QListWidget):
             }}
         """)
         self.setMinimumWidth(220)
- 
+
     def mouseMoveEvent(self, e):
         if e.buttons() != Qt.MouseButton.LeftButton:
             return
@@ -89,6 +90,31 @@ class AthletePool(QListWidget):
         drag.setPixmap(pix)
         drag.setHotSpot(QPoint(100, 20))
         drag.exec(Qt.DropAction.MoveAction)
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasFormat(MIME_TYPE):
+            e.acceptProposedAction()
+
+    def dragMoveEvent(self, e):
+        if e.mimeData().hasFormat(MIME_TYPE):
+            e.acceptProposedAction()
+
+    def dropEvent(self, e):
+        text = e.mimeData().text()
+        if not text:
+            return
+        parts = text.split("|")
+        if len(parts) < 3:
+            return
+        athlete_id = parts[2]
+        if len(parts) >= 5:
+            p = self.parentWidget()
+            while p:
+                if hasattr(p, "remove_athlete_from_brackets"):
+                    p.remove_athlete_from_brackets(athlete_id)
+                    e.acceptProposedAction()
+                    break
+                p = p.parentWidget()
  
  
 # ─── Match slot cell ───────────────────────────────────────────────────────────
@@ -320,7 +346,59 @@ class MatchSlot(QFrame):
  
     def mousePressEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
-            self.slot_clicked.emit(self.match.id)
+            self.drag_start_position = e.position().toPoint()
+            y = e.position().y()
+            if y < self.height() / 2:
+                self.dragged_slot = "aka"
+                self.dragged_athlete_id = self.match.aka_id
+            else:
+                self.dragged_slot = "ao"
+                self.dragged_athlete_id = self.match.ao_id
+        else:
+            self.drag_start_position = None
+            self.dragged_athlete_id = None
+
+    def mouseMoveEvent(self, e):
+        if not getattr(self, "drag_start_position", None) or not getattr(self, "dragged_athlete_id", None):
+            return
+        if (e.position().toPoint() - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
+            return
+        
+        canvas = self.parentWidget()
+        comp = getattr(canvas, "competition", None) if canvas else None
+        if not comp:
+            return
+        athlete = comp.get_athlete(self.dragged_athlete_id)
+        if not athlete:
+            return
+            
+        drag = QDrag(self)
+        mime = QMimeData()
+        mime.setData(MIME_TYPE, athlete.id.encode())
+        mime.setText(f"{athlete.name}|{athlete.dojo}|{athlete.id}|{self.match.id}|{self.dragged_slot}")
+        drag.setMimeData(mime)
+        
+        pix = QPixmap(200, 40)
+        pix.fill(QColor(theme.BG_SURFACE))
+        p = QPainter(pix)
+        p.setPen(QColor(theme.TEXT_PRIMARY))
+        p.setFont(QFont(theme.FONT_FAMILY, 11))
+        p.drawText(10, 26, athlete.name)
+        p.end()
+        drag.setPixmap(pix)
+        drag.setHotSpot(QPoint(100, 20))
+        
+        self.drag_start_position = None
+        self.dragged_athlete_id = None
+        
+        drag.exec(Qt.DropAction.MoveAction)
+
+    def mouseReleaseEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton:
+            if getattr(self, "drag_start_position", None):
+                self.slot_clicked.emit(self.match.id)
+        self.drag_start_position = None
+        self.dragged_athlete_id = None
  
  
 # ─── Bracket canvas ────────────────────────────────────────────────────────────
@@ -811,6 +889,36 @@ class BracketView(QWidget):
             if a.get("id") not in placed:
                 athlete = Athlete(id=a["id"], name=a["name"], dojo=a["dojo"], members=a.get("members", []))
                 self.pool_list.addItem(AthleteListItem(athlete))
+
+    def remove_athlete_from_brackets(self, athlete_id: str):
+        comp = self.competition
+        changed = False
+        for m_dict in comp.matches:
+            from models import Match as M2, MatchResult as MR2
+            from dataclasses import asdict
+            d = m_dict if isinstance(m_dict, dict) else asdict(m_dict)
+            result_obj = None
+            if d.get("result"):
+                result_obj = MR2(**d["result"])
+            other = M2(id=d["id"], round_index=d["round_index"],
+                       match_index=d["match_index"],
+                       aka_id=d.get("aka_id"), ao_id=d.get("ao_id"),
+                       result=result_obj, is_bye=d.get("is_bye", False))
+            slot_changed = False
+            if other.aka_id == athlete_id:
+                other.aka_id = None
+                slot_changed = True
+            if other.ao_id == athlete_id:
+                other.ao_id = None
+                slot_changed = True
+            if slot_changed:
+                comp.update_match(other)
+                changed = True
+                
+        if changed:
+            from models import save_competition
+            save_competition(comp)
+            self.rebuild()
  
     def rebuild(self):
         """Full rebuild after competition data changes."""

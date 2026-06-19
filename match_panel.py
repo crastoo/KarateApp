@@ -749,7 +749,18 @@ class MatchPanel(QDialog):
         if self.competition.is_team and not self._result:
             if not self._current_aka_member or not self._current_ao_member:
                 QTimer.singleShot(0, self._initial_prompt)
- 
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        parent = self.parentWidget()
+        if parent:
+            parent_window = parent.window()
+            if parent_window:
+                parent_geo = parent_window.geometry()
+                x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
+                y = parent_geo.y() + (parent_geo.height() - self.height()) // 2
+                self.move(x, y)
+
     def _setup_ui(self):
         self.setStyleSheet(f"QDialog {{ background-color: {theme.BG_DARK}; }}")
         root = QVBoxLayout(self)
