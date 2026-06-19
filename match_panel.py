@@ -756,10 +756,24 @@ class MatchPanel(QDialog):
         if parent:
             parent_window = parent.window()
             if parent_window:
+                frame_geo = self.frameGeometry()
                 parent_geo = parent_window.geometry()
-                x = parent_geo.x() + (parent_geo.width() - self.width()) // 2
-                y = parent_geo.y() + (parent_geo.height() - self.height()) // 2
-                self.move(x, y)
+                frame_geo.moveCenter(parent_geo.center())
+                
+                # Verify screen boundaries to avoid going off-screen
+                screen = parent_window.screen()
+                if screen:
+                    screen_geo = screen.geometry()
+                    if frame_geo.top() < screen_geo.top():
+                        frame_geo.moveTop(screen_geo.top() + 40)
+                    if frame_geo.bottom() > screen_geo.bottom():
+                        frame_geo.moveBottom(screen_geo.bottom() - 40)
+                    if frame_geo.left() < screen_geo.left():
+                        frame_geo.moveLeft(screen_geo.left() + 40)
+                    if frame_geo.right() > screen_geo.right():
+                        frame_geo.moveRight(screen_geo.right() - 40)
+                
+                self.move(frame_geo.topLeft())
 
     def _setup_ui(self):
         self.setStyleSheet(f"QDialog {{ background-color: {theme.BG_DARK}; }}")

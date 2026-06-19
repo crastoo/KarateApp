@@ -33,15 +33,14 @@ class AthleteListItem(QListWidgetItem):
         self.athlete_name = athlete.name
         self.athlete_dojo = athlete.dojo
         self.setFont(QFont(theme.FONT_FAMILY, 12))
-        # Support members list display
         members = getattr(athlete, "members", [])
         if members:
             self.setToolTip(f"Atletas: {', '.join(members)}")
 
 
 class AthletePool(QListWidget):
-    """Left panel showing unplaced athletes, draggable."""
-
+    """Left panel showing unplaced athletes, draggable and accepting drops to remove from bracket."""
+ 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setDragEnabled(True)
@@ -68,6 +67,36 @@ class AthletePool(QListWidget):
             }}
         """)
         self.setMinimumWidth(220)
+ 
+    def parent_view(self):
+        w = self.parent()
+        while w:
+            if isinstance(w, BracketView):
+                return w
+            w = w.parent()
+        return None
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasFormat(MIME_TYPE) or e.mimeData().hasText():
+            e.acceptProposedAction()
+
+    def dragMoveEvent(self, e):
+        if e.mimeData().hasFormat(MIME_TYPE) or e.mimeData().hasText():
+            e.acceptProposedAction()
+
+    def dropEvent(self, e):
+        text = e.mimeData().text()
+        if not text:
+            return
+        parts = text.split("|")
+        if len(parts) < 3:
+            return
+        athlete_id = parts[2]
+        
+        bv = self.parent_view()
+        if bv:
+            bv.remove_athlete_from_brackets(athlete_id)
+            e.acceptProposedAction()
 
     def mouseMoveEvent(self, e):
         if e.buttons() != Qt.MouseButton.LeftButton:
@@ -90,30 +119,6 @@ class AthletePool(QListWidget):
         drag.setPixmap(pix)
         drag.setHotSpot(QPoint(100, 20))
         drag.exec(Qt.DropAction.MoveAction)
-
-    def dragEnterEvent(self, e):
-        if e.mimeData().hasFormat(MIME_TYPE):
-            e.acceptProposedAction()
-
-    def dragMoveEvent(self, e):
-        if e.mimeData().hasFormat(MIME_TYPE):
-            e.acceptProposedAction()
-
-    def dropEvent(self, e):
-        text = e.mimeData().text()
-        if not text:
-            return
-        parts = text.split("|")
-        if len(parts) < 3:
-            return
-        athlete_id = parts[2]
-        p = self.parentWidget()
-        while p:
-            if hasattr(p, "remove_athlete_from_brackets"):
-                p.remove_athlete_from_brackets(athlete_id)
-                e.acceptProposedAction()
-                break
-            p = p.parentWidget()
  
  
 # ─── Match slot cell ───────────────────────────────────────────────────────────
@@ -151,6 +156,7 @@ class MatchSlot(QFrame):
  
         # AKA slot
         self.aka_frame = QFrame()
+        self.aka_frame.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.aka_frame.setFixedHeight(self.SLOT_H)
         self.aka_frame.setStyleSheet(f"""
             QFrame {{
@@ -184,9 +190,10 @@ class MatchSlot(QFrame):
         self.aka_dojo_lbl.setFont(QFont(theme.FONT_FAMILY, 11))
         self.aka_dojo_lbl.setStyleSheet(f"color: {theme.TEXT_SEC}; background: transparent;")
         aka_lay.addWidget(self.aka_dojo_lbl)
- 
+  
         # AO slot
         self.ao_frame = QFrame()
+        self.ao_frame.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.ao_frame.setFixedHeight(self.SLOT_H)
         self.ao_frame.setStyleSheet(f"""
             QFrame {{
@@ -345,8 +352,9 @@ class MatchSlot(QFrame):
  
     def mousePressEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
-            self.drag_start_position = e.position().toPoint()
-            y = e.position().y()
+            local_pos = self.mapFromGlobal(e.globalPosition().toPoint())
+            self.drag_start_position = local_pos
+            y = local_pos.y()
             if y < self.height() / 2:
                 self.dragged_slot = "aka"
                 self.dragged_athlete_id = self.match.aka_id
@@ -360,7 +368,8 @@ class MatchSlot(QFrame):
     def mouseMoveEvent(self, e):
         if not getattr(self, "drag_start_position", None) or not getattr(self, "dragged_athlete_id", None):
             return
-        if (e.position().toPoint() - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
+        local_pos = self.mapFromGlobal(e.globalPosition().toPoint())
+        if (local_pos - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
             return
         
         canvas = self.parentWidget()
@@ -394,7 +403,9 @@ class MatchSlot(QFrame):
 
     def mouseReleaseEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
-            if getattr(self, "drag_start_position", None):
+            local_pos = self.mapFromGlobal(e.globalPosition().toPoint())
+            # Ensure the release was close to the press to register as a click
+            if getattr(self, "drag_start_position", None) and (local_pos - self.drag_start_position).manhattanLength() < QApplication.startDragDistance():
                 self.slot_clicked.emit(self.match.id)
         self.drag_start_position = None
         self.dragged_athlete_id = None
@@ -500,9 +511,26 @@ class BracketCanvas(QWidget):
             from models import Match, MatchResult
             from dataclasses import asdict
             d = m_dict if isinstance(m_dict, dict) else asdict(m_dict)
+            res_dict = d.get("result")
             result = None
-            if d.get("result"):
-                result = MatchResult(**d["result"])
+            if res_dict:
+                if isinstance(res_dict, dict):
+                    result = MatchResult(
+                        winner_id=res_dict.get("winner_id"),
+                        aka_flags=res_dict.get("aka_flags", 0),
+                        ao_flags=res_dict.get("ao_flags", 0),
+                        aka_penalties=res_dict.get("aka_penalties", 0),
+                        ao_penalties=res_dict.get("ao_penalties", 0),
+                        is_draw=res_dict.get("is_draw", False),
+                        disqualified_id=res_dict.get("disqualified_id"),
+                        aka_sub_wins=res_dict.get("aka_sub_wins", 0),
+                        ao_sub_wins=res_dict.get("ao_sub_wins", 0),
+                        sub_matches=res_dict.get("sub_matches", []),
+                        current_aka_member=res_dict.get("current_aka_member"),
+                        current_ao_member=res_dict.get("current_ao_member")
+                    )
+                else:
+                    result = res_dict
             match = Match(
                 id=d["id"], round_index=d["round_index"],
                 match_index=d["match_index"],
@@ -555,6 +583,7 @@ class BracketCanvas(QWidget):
         slot = self._slots.get(match.id)
         if slot is None:
             return
+        slot.match = match
         comp = self.competition
  
         aka_athlete = comp.get_athlete(match.aka_id) if match.aka_id else None
@@ -855,18 +884,18 @@ class BracketView(QWidget):
         root.addWidget(pool_panel)
  
         # ── Right: bracket canvas in scroll ───────────────────────────
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet(f"""
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setStyleSheet(f"""
             QScrollArea {{
                 background-color: {theme.BG_DARK};
                 border: 1px solid {theme.BORDER};
                 border-radius: 10px;
             }}
         """)
-        self.canvas = BracketCanvas(self.competition, self.presentation, scroll)
-        scroll.setWidget(self.canvas)
-        root.addWidget(scroll, 1)
+        self.canvas = BracketCanvas(self.competition, self.presentation, self.scroll_area)
+        self.scroll_area.setWidget(self.canvas)
+        root.addWidget(self.scroll_area, 1)
  
         # Initial pool fill
         self.refresh_pool()
@@ -887,7 +916,8 @@ class BracketView(QWidget):
                     placed.add(d["ao_id"])
         self.pool_list.clear()
         for a_dict in comp.athletes:
-            a = a_dict if isinstance(a_dict, dict) else {}
+            from dataclasses import asdict
+            a = a_dict if isinstance(a_dict, dict) else asdict(a_dict)
             if a.get("id") not in placed:
                 athlete = Athlete(id=a["id"], name=a["name"], dojo=a["dojo"], members=a.get("members", []))
                 self.pool_list.addItem(AthleteListItem(athlete))
@@ -899,13 +929,37 @@ class BracketView(QWidget):
             from models import Match as M2, MatchResult as MR2
             from dataclasses import asdict
             d = m_dict if isinstance(m_dict, dict) else asdict(m_dict)
+            
+            res_dict = d.get("result")
             result_obj = None
-            if d.get("result"):
-                result_obj = MR2(**d["result"])
+            if res_dict:
+                if isinstance(res_dict, dict):
+                    result_obj = MR2(
+                        winner_id=res_dict.get("winner_id"),
+                        aka_flags=res_dict.get("aka_flags", 0),
+                        ao_flags=res_dict.get("ao_flags", 0),
+                        aka_penalties=res_dict.get("aka_penalties", 0),
+                        ao_penalties=res_dict.get("ao_penalties", 0),
+                        is_draw=res_dict.get("is_draw", False),
+                        disqualified_id=res_dict.get("disqualified_id"),
+                        aka_sub_wins=res_dict.get("aka_sub_wins", 0),
+                        ao_sub_wins=res_dict.get("ao_sub_wins", 0),
+                        sub_matches=res_dict.get("sub_matches", []),
+                        current_aka_member=res_dict.get("current_aka_member"),
+                        current_ao_member=res_dict.get("current_ao_member")
+                    )
+                else:
+                    result_obj = res_dict
+            
+            # If the match already has a winner, we do not clear it
+            if result_obj and result_obj.winner_id is not None:
+                continue
+                
             other = M2(id=d["id"], round_index=d["round_index"],
                        match_index=d["match_index"],
                        aka_id=d.get("aka_id"), ao_id=d.get("ao_id"),
                        result=result_obj, is_bye=d.get("is_bye", False))
+            
             slot_changed = False
             if other.aka_id == athlete_id:
                 other.aka_id = None
@@ -924,9 +978,6 @@ class BracketView(QWidget):
  
     def rebuild(self):
         """Full rebuild after competition data changes."""
-        # Remove old canvas
-        old = self.canvas
-        scroll = old.parent()
-        self.canvas = BracketCanvas(self.competition, self.presentation, scroll)
-        scroll.setWidget(self.canvas)
+        self.canvas = BracketCanvas(self.competition, self.presentation, self.scroll_area)
+        self.scroll_area.setWidget(self.canvas)
         self.refresh_pool()
