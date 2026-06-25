@@ -164,25 +164,10 @@ class CompetitionsListDialog(QDialog):
         tatami_lbl.setFixedWidth(100)
         self.tatami_lay.addWidget(tatami_lbl)
 
-        self.btn_tatami_1 = QPushButton("Tatami 1")
-        self.btn_tatami_2 = QPushButton("Tatami 2")
-        self.btn_tatami_none = QPushButton("Sem Tatami")
-
-        for btn in [self.btn_tatami_1, self.btn_tatami_2, self.btn_tatami_none]:
-            btn.setFixedHeight(36)
-            btn.setFont(QFont(theme.FONT_FAMILY, 11, QFont.Weight.Bold))
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-
+        self.tatami_buttons = {}
         self._current_tatami_filter = "1" # default to Tatami 1
 
-        self.btn_tatami_1.clicked.connect(lambda: self._set_tatami_filter("1"))
-        self.btn_tatami_2.clicked.connect(lambda: self._set_tatami_filter("2"))
-        self.btn_tatami_none.clicked.connect(lambda: self._set_tatami_filter("none"))
-
-        self.tatami_lay.addWidget(self.btn_tatami_1)
-        self.tatami_lay.addWidget(self.btn_tatami_2)
-        self.tatami_lay.addWidget(self.btn_tatami_none)
-        self.tatami_lay.addStretch()
+        self._rebuild_tatami_filters()
         root.addLayout(self.tatami_lay)
  
         # Scroll area for cards
@@ -202,9 +187,63 @@ class CompetitionsListDialog(QDialog):
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
  
-        self._update_filter_button_styles()
         self._populate()
  
+    def _rebuild_tatami_filters(self):
+        # Clear previous buttons (keeping the first item which is the label)
+        while self.tatami_lay.count() > 1:
+            item = self.tatami_lay.takeAt(1)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        # Find all unique tatami values in existing competitions
+        competitions = load_all_competitions()
+        tatamis = set()
+        for comp in competitions:
+            val = comp.tatami.strip() if comp.tatami else ""
+            if val:
+                tatamis.add(val)
+
+        def tatami_key(t: str):
+            try:
+                return (0, int(t))
+            except ValueError:
+                return (1, t)
+
+        sorted_tatamis = sorted(list(tatamis), key=tatami_key)
+
+        # Base filter options (always show at least Tatami 1 and Tatami 2 as defaults)
+        filter_options = ["1", "2"]
+        for t in sorted_tatamis:
+            if t not in filter_options:
+                filter_options.append(t)
+
+        self.tatami_buttons = {}
+        for opt in filter_options:
+            btn = QPushButton(f"Tatami {opt}")
+            btn.setFixedHeight(36)
+            btn.setFont(QFont(theme.FONT_FAMILY, 11, QFont.Weight.Bold))
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.clicked.connect(lambda checked, val=opt: self._set_tatami_filter(val))
+            self.tatami_lay.addWidget(btn)
+            self.tatami_buttons[opt] = btn
+
+        # "Sem Tatami" button
+        btn_none = QPushButton("Sem Tatami")
+        btn_none.setFixedHeight(36)
+        btn_none.setFont(QFont(theme.FONT_FAMILY, 11, QFont.Weight.Bold))
+        btn_none.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_none.clicked.connect(lambda: self._set_tatami_filter("none"))
+        self.tatami_lay.addWidget(btn_none)
+        self.tatami_buttons["none"] = btn_none
+
+        self.tatami_lay.addStretch()
+
+        if self._current_tatami_filter not in self.tatami_buttons:
+            self._current_tatami_filter = "1"
+        self._update_filter_button_styles()
+
     def _set_discipline_filter(self, filter_val: str):
         self._current_discipline_filter = filter_val
         self._update_filter_button_styles()
@@ -241,9 +280,8 @@ class CompetitionsListDialog(QDialog):
         self.btn_disc_irikumi.setStyleSheet(active_style if self._current_discipline_filter == "irikumi" else inactive_style)
         self.btn_disc_kata.setStyleSheet(active_style if self._current_discipline_filter == "kata" else inactive_style)
 
-        self.btn_tatami_1.setStyleSheet(active_style if self._current_tatami_filter == "1" else inactive_style)
-        self.btn_tatami_2.setStyleSheet(active_style if self._current_tatami_filter == "2" else inactive_style)
-        self.btn_tatami_none.setStyleSheet(active_style if self._current_tatami_filter == "none" else inactive_style)
+        for opt, btn in self.tatami_buttons.items():
+            btn.setStyleSheet(active_style if self._current_tatami_filter == opt else inactive_style)
 
     def _populate(self):
         # Clear
@@ -265,14 +303,11 @@ class CompetitionsListDialog(QDialog):
 
             # Check tatami
             tatami_val = comp.tatami.strip() if comp.tatami else ""
-            if self._current_tatami_filter == "1":
-                if tatami_val == "1":
+            if self._current_tatami_filter == "none":
+                if not tatami_val:
                     filtered.append(comp)
-            elif self._current_tatami_filter == "2":
-                if tatami_val == "2":
-                    filtered.append(comp)
-            else: # "none"
-                if tatami_val not in ["1", "2"]:
+            else:
+                if tatami_val == self._current_tatami_filter:
                     filtered.append(comp)
 
         if not filtered:
@@ -319,6 +354,7 @@ class CompetitionsListDialog(QDialog):
         )
         if reply == QMessageBox.StandardButton.Yes:
             delete_competition(comp.id)
+            self._rebuild_tatami_filters()
             self._populate()
  
     def _on_open(self, comp: Competition):
