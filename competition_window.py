@@ -401,6 +401,7 @@ class CompetitionWindow(QMainWindow):
     def _setup_presentation(self):
         """Create and place the presentation window on a secondary screen if available."""
         self.presentation = PresentationWindow()
+        self.presentation.set_competition_type(self.competition.comp_type)
         self.presentation.set_competition_name(self.competition.name)
         self.presentation.update_tatami(self.competition.tatami)
         self.presentation.update_category(self.competition.category)

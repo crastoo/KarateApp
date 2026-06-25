@@ -203,14 +203,14 @@ class AthletePanel(QFrame):
         bottom_row.setSpacing(16)
 
         # 1. Penalties box
-        pen_card = QFrame()
-        pen_card.setStyleSheet("""
+        self.pen_card = QFrame()
+        self.pen_card.setStyleSheet("""
             QFrame {
                 background-color: transparent;
                 border: none;
             }
         """)
-        pen_lay = QVBoxLayout(pen_card)
+        pen_lay = QVBoxLayout(self.pen_card)
         pen_lay.setContentsMargins(10, 6, 10, 6)
         pen_lay.setSpacing(2)
 
@@ -218,12 +218,12 @@ class AthletePanel(QFrame):
         self.pen_title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         pen_lay.addWidget(self.pen_title_lbl)
 
-        self.circles = PenaltyCircles("white", pen_card)
+        self.circles = PenaltyCircles("white", self.pen_card)
         self.circles.setStyleSheet("background: transparent;")
         self.circles.setFixedHeight(95)
         pen_lay.addWidget(self.circles)
 
-        bottom_row.addWidget(pen_card, 1)
+        bottom_row.addWidget(self.pen_card, 1)
 
         # 2. Flags box
         self.flag_card = QFrame()
@@ -602,6 +602,17 @@ class PresentationWindow(QWidget):
         """)
 
     # ── Public API ──────────────────────────────────────────────────────────
+
+    def set_competition_type(self, comp_type: str):
+        self.comp_type = comp_type
+        if comp_type == "kata":
+            self.timer_display.hide()
+            self.aka_panel.pen_card.hide()
+            self.ao_panel.pen_card.hide()
+        else:
+            self.timer_display.show()
+            self.aka_panel.pen_card.show()
+            self.ao_panel.pen_card.show()
 
     def set_competition_name(self, name: str):
         self.comp_label.setText(name.upper())

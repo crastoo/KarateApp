@@ -126,10 +126,10 @@ class AthleteControl(QFrame):
         lay.addWidget(self.wins_lbl)
  
         # Penalties label
-        pen_lbl = QLabel("FALTAS (CHUI / HANSOKU)")
-        pen_lbl.setFont(QFont(theme.FONT_FAMILY, 10, QFont.Weight.Bold))
-        pen_lbl.setStyleSheet("color: rgba(255,255,255,0.65); background: transparent; letter-spacing: 1.5px;")
-        lay.addWidget(pen_lbl)
+        self.pen_lbl = QLabel("FALTAS (CHUI / HANSOKU)")
+        self.pen_lbl.setFont(QFont(theme.FONT_FAMILY, 10, QFont.Weight.Bold))
+        self.pen_lbl.setStyleSheet("color: rgba(255,255,255,0.65); background: transparent; letter-spacing: 1.5px;")
+        lay.addWidget(self.pen_lbl)
  
         self.penalties = PenaltyWidget("white", self)
         self.penalties.setStyleSheet("background: transparent;")
@@ -349,7 +349,7 @@ class TimerWidget(QFrame):
         if self.remaining > 0:
             self.remaining -= 1
             self._update_display()
-            if self.remaining == 10:
+            if self.remaining == 15:
                 self._play_sound("warning.mp3")
             elif self.remaining == 0:
                 self._play_sound("end.mp3")
@@ -538,28 +538,6 @@ class SelectAthletesDialog(QDialog):
         title.setStyleSheet(f"color: {theme.TEXT_PRIMARY};")
         lay.addWidget(title)
         
-        # AKA Selection
-        aka_box = QVBoxLayout()
-        aka_lbl = QLabel(f"Atleta de {aka_team} (AKA):")
-        aka_lbl.setFont(QFont(theme.FONT_FAMILY, 11, QFont.Weight.Bold))
-        aka_lbl.setStyleSheet(f"color: {theme.AKA_LIGHT}; background: transparent;")
-        self.aka_combo = QComboBox()
-        self.aka_combo.addItems(self.available_aka)
-        self.aka_combo.setStyleSheet(f"""
-            QComboBox {{
-                background-color: {theme.BG_CARD};
-                color: white;
-                border: 1px solid {theme.BORDER};
-                border-radius: 6px;
-                padding: 6px;
-                font-family: {theme.FONT_FAMILY};
-                font-size: 13px;
-            }}
-        """)
-        aka_box.addWidget(aka_lbl)
-        aka_box.addWidget(self.aka_combo)
-        lay.addLayout(aka_box)
-        
         # AO Selection
         ao_box = QVBoxLayout()
         ao_lbl = QLabel(f"Atleta de {ao_team} (AO):")
@@ -581,6 +559,28 @@ class SelectAthletesDialog(QDialog):
         ao_box.addWidget(ao_lbl)
         ao_box.addWidget(self.ao_combo)
         lay.addLayout(ao_box)
+
+        # AKA Selection
+        aka_box = QVBoxLayout()
+        aka_lbl = QLabel(f"Atleta de {aka_team} (AKA):")
+        aka_lbl.setFont(QFont(theme.FONT_FAMILY, 11, QFont.Weight.Bold))
+        aka_lbl.setStyleSheet(f"color: {theme.AKA_LIGHT}; background: transparent;")
+        self.aka_combo = QComboBox()
+        self.aka_combo.addItems(self.available_aka)
+        self.aka_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {theme.BG_CARD};
+                color: white;
+                border: 1px solid {theme.BORDER};
+                border-radius: 6px;
+                padding: 6px;
+                font-family: {theme.FONT_FAMILY};
+                font-size: 13px;
+            }}
+        """)
+        aka_box.addWidget(aka_lbl)
+        aka_box.addWidget(self.aka_combo)
+        lay.addLayout(aka_box)
         
         # Buttons
         btn_lay = QHBoxLayout()
@@ -641,8 +641,8 @@ def _ask_who(aka_name: str, ao_name: str, question: str, parent) -> str | None:
  
     aka_btn.clicked.connect(lambda: pick("aka"))
     ao_btn.clicked.connect(lambda: pick("ao"))
-    row.addWidget(aka_btn)
     row.addWidget(ao_btn)
+    row.addWidget(aka_btn)
     lay.addLayout(row)
     cancel = QPushButton("Cancelar")
     cancel.setObjectName("btnGhost")
@@ -751,7 +751,7 @@ class MatchPanel(QDialog):
         self._push_undo()
         self._sync_presentation()
 
-        if self.competition.is_team and not self._result:
+        if self.competition.is_team and self.competition.comp_type != "kata" and not self._result:
             if not self._current_aka_member or not self._current_ao_member:
                 QTimer.singleShot(0, self._initial_prompt)
 
@@ -832,16 +832,27 @@ class MatchPanel(QDialog):
         self.ao_ctrl.set_wins(self._ao_sub_wins)
         self.ao_ctrl.falta_requested.connect(lambda: self._add_falta("ao"))
         
+        if self.competition.comp_type == "kata":
+            self.aka_ctrl.pen_lbl.hide()
+            self.aka_ctrl.penalties.hide()
+            self.aka_ctrl.falta_btn.hide()
+            self.ao_ctrl.pen_lbl.hide()
+            self.ao_ctrl.penalties.hide()
+            self.ao_ctrl.falta_btn.hide()
+        
         self._update_athlete_displays()
  
-        athletes_row.addWidget(self.aka_ctrl, 1)
+        # AO left, AKA right
         athletes_row.addWidget(self.ao_ctrl, 1)
+        athletes_row.addWidget(self.aka_ctrl, 1)
         root.addLayout(athletes_row)
  
         # ── Timer ─────────────────────────────────────────────────────
         self.timer = TimerWidget(self)
         self.timer.time_up.connect(self._on_time_up)
         root.addWidget(self.timer)
+        if self.competition.comp_type == "kata":
+            self.timer.hide()
  
         # ── Result Selection Panel ────────────────────────────────────
         self.result_panel = QFrame()
@@ -917,11 +928,11 @@ class MatchPanel(QDialog):
                     }}
                 """)
  
-        btn_bar.addWidget(self.btn_aka_4)
-        btn_bar.addWidget(self.btn_aka_3)
-        btn_bar.addWidget(self.btn_draw)
-        btn_bar.addWidget(self.btn_ao_3)
         btn_bar.addWidget(self.btn_ao_4)
+        btn_bar.addWidget(self.btn_ao_3)
+        btn_bar.addWidget(self.btn_draw)
+        btn_bar.addWidget(self.btn_aka_3)
+        btn_bar.addWidget(self.btn_aka_4)
         rp_lay.addLayout(btn_bar)
  
         self.btn_aka_4.clicked.connect(lambda: self._set_inline_result("aka", 4, 0))
@@ -962,6 +973,7 @@ class MatchPanel(QDialog):
                 self.presentation.hide()
                 self.pres_btn.setText("📺  Mostrar Apresentação")
             else:
+                self.presentation.set_competition_type(self.competition.comp_type)
                 self.presentation.showNormal()
                 self.pres_btn.setText("📺  Apresentação")
 
@@ -974,14 +986,14 @@ class MatchPanel(QDialog):
 
     def _update_round_title(self):
         curr_round = len(self._sub_matches) + 1
-        if self.competition.is_team:
+        if self.competition.is_team and self.competition.comp_type != "kata":
             aka_members = self.aka_athlete.members if self.aka_athlete else []
             ao_members = self.ao_athlete.members if self.ao_athlete else []
             max_rounds = max(2, len(aka_members), len(ao_members))
             if len(aka_members) == 2 and len(ao_members) == 2:
                 max_rounds = 3
         else:
-            max_rounds = 3
+            max_rounds = 1 if self.competition.comp_type == "kata" else 3
         if curr_round > max_rounds:
             curr_round = max_rounds
         prefix = "COMBATE" if self.competition.is_team else "RONDA"
@@ -996,7 +1008,7 @@ class MatchPanel(QDialog):
         self._record_sub_match(winner_side, aka_flags, ao_flags)
 
     def _set_inline_draw(self):
-        if self.competition.is_team:
+        if self.competition.is_team and self.competition.comp_type != "kata":
             aka_name = self._current_aka_member if self._current_aka_member else "AKA"
             ao_name = self._current_ao_member if self._current_ao_member else "AO"
         else:
@@ -1019,7 +1031,7 @@ class MatchPanel(QDialog):
             "disqualified_id": disqualified_id,
             "is_draw": (aka_flags == 3 and ao_flags == 2) or (aka_flags == 2 and ao_flags == 3)
         }
-        if self.competition.is_team:
+        if self.competition.is_team and self.competition.comp_type != "kata":
             sub_rec["aka_athlete_name"] = self._current_aka_member
             sub_rec["ao_athlete_name"] = self._current_ao_member
         
@@ -1103,7 +1115,7 @@ class MatchPanel(QDialog):
             )
             self._apply_result(result)
         else:
-            if self.competition.is_team:
+            if self.competition.is_team and self.competition.comp_type != "kata":
                 winner_name = self._current_aka_member if winner_side == "aka" else self._current_ao_member
                 side_text = "AKA" if winner_side == "aka" else "AO"
             else:
@@ -1145,7 +1157,7 @@ class MatchPanel(QDialog):
             
             self.timer.reset()
 
-            if self.competition.is_team:
+            if self.competition.is_team and self.competition.comp_type != "kata":
                 if not self._prompt_select_athletes():
                     self.reject()
                     return
@@ -1415,7 +1427,7 @@ class MatchPanel(QDialog):
         return False
 
     def _update_athlete_displays(self):
-        if self.competition.is_team:
+        if self.competition.is_team and self.competition.comp_type != "kata":
             aka_name = self._current_aka_member if self._current_aka_member else "—"
             aka_team = self.aka_athlete.name if self.aka_athlete else "—"
             ao_name = self._current_ao_member if self._current_ao_member else "—"
@@ -1489,7 +1501,7 @@ class MatchPanel(QDialog):
     def _sync_presentation(self):
         if self.presentation is None:
             return
-        if self.competition.is_team:
+        if self.competition.is_team and self.competition.comp_type != "kata":
             aka_name = self._current_aka_member if self._current_aka_member else "—"
             aka_team = self.aka_athlete.name if self.aka_athlete else "—"
             ao_name = self._current_ao_member if self._current_ao_member else "—"
@@ -1510,14 +1522,14 @@ class MatchPanel(QDialog):
         self.presentation.update_timer(self.timer.get_remaining())
         
         curr_round = len(self._sub_matches) + 1
-        if self.competition.is_team:
+        if self.competition.is_team and self.competition.comp_type != "kata":
             aka_members = self.aka_athlete.members if self.aka_athlete else []
             ao_members = self.ao_athlete.members if self.ao_athlete else []
             max_rounds = max(2, len(aka_members), len(ao_members))
             if len(aka_members) == 2 and len(ao_members) == 2:
                 max_rounds = 3
         else:
-            max_rounds = 3
+            max_rounds = 1 if self.competition.comp_type == "kata" else 3
         if curr_round > max_rounds:
             curr_round = max_rounds
         self.presentation.update_round(curr_round, is_completed=(self._result is not None and self._result.winner_id is not None), is_team=self.competition.is_team)

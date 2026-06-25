@@ -184,6 +184,20 @@ class CreateCompetitionDialog(QDialog):
             l.setStyleSheet(f"color: {theme.TEXT_SEC}; background: transparent;")
             return l
  
+        self.discipline_combo = QComboBox()
+        self.discipline_combo.addItems(["Irikumi", "Kata"])
+        self.discipline_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {theme.BG_CARD};
+                color: white;
+                border: 1px solid {theme.BORDER};
+                border-radius: 6px;
+                padding: 6px;
+                font-family: {theme.FONT_FAMILY};
+                font-size: 13px;
+            }}
+        """)
+
         self.type_combo = QComboBox()
         self.type_combo.addItems(["Individual", "Equipa"])
         self.type_combo.setStyleSheet(f"""
@@ -209,6 +223,7 @@ class CreateCompetitionDialog(QDialog):
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDisplayFormat("dd/MM/yyyy")
  
+        form.addRow(lbl("Disciplina:"),  self.discipline_combo)
         form.addRow(lbl("Tipo:"),        self.type_combo)
         form.addRow(lbl("Nome:"),        self.name_edit)
         form.addRow(lbl("Nº Tatami:"),   self.tatami_edit)
@@ -352,5 +367,6 @@ class CreateCompetitionDialog(QDialog):
             return
 
         # Create the competition
-        self.competition = new_competition(name, tatami, category, date_str, athletes_data, is_team=is_team)
+        discipline = self.discipline_combo.currentText().lower()
+        self.competition = new_competition(name, tatami, category, date_str, athletes_data, is_team=is_team, comp_type=discipline)
         self.accept()

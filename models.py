@@ -76,6 +76,7 @@ class Competition:
     rounds: int = 0
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     is_team: bool = False
+    comp_type: str = "irikumi"
  
     def get_athlete(self, athlete_id: str) -> Optional[Athlete]:
         for a in self.athletes:
@@ -139,7 +140,8 @@ class Competition:
             "matches": [m if isinstance(m, dict) else asdict(m) for m in self.matches],
             "rounds": self.rounds,
             "created_at": self.created_at,
-            "is_team": self.is_team
+            "is_team": self.is_team,
+            "comp_type": self.comp_type
         }
 
     def get_winner_info(self) -> Optional[tuple[str, str]]:
@@ -204,7 +206,8 @@ def load_all_competitions() -> list[Competition]:
             matches=c.get("matches", []),
             rounds=c.get("rounds", 0),
             created_at=c.get("created_at", ""),
-            is_team=c.get("is_team", False)
+            is_team=c.get("is_team", False),
+            comp_type=c.get("comp_type", "irikumi")
         ))
     return result
  
@@ -272,7 +275,7 @@ def build_bracket(athletes: list[Athlete], competition_id: str) -> tuple[list[Ma
     return matches, rounds
  
  
-def new_competition(name, tatami, category, date, athletes_data: list[dict], is_team: bool = False) -> Competition:
+def new_competition(name, tatami, category, date, athletes_data: list[dict], is_team: bool = False, comp_type: str = "irikumi") -> Competition:
     comp_id = str(uuid.uuid4())
     athletes = [Athlete(id=str(uuid.uuid4()), name=a["name"], dojo=a["dojo"], members=a.get("members", []))
                 for a in athletes_data]
@@ -283,7 +286,8 @@ def new_competition(name, tatami, category, date, athletes_data: list[dict], is_
         athletes=[asdict(a) for a in athletes],
         matches=[asdict(m) for m in matches],
         rounds=rounds,
-        is_team=is_team
+        is_team=is_team,
+        comp_type=comp_type
     )
     save_competition(comp)
     return comp
