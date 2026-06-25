@@ -17,12 +17,14 @@ Um agradecimento honorífico e profundo ao **Clube Karate Budo Dojo**. Esta apli
 
 ## 🌟 Principais Funcionalidades
 
-### 1. Modos de Competição Flexíveis
-*   **Competições Individuais**: Formato clássico onde os atletas progridem no bracket eliminatório em combates individuais à melhor de 3 rondas.
-*   **Competições em Equipa (Dojos)**:
-    *   Equipas formadas por 2 ou 3 atletas (o nome da equipa é associado diretamente ao nome do Dojo).
-    *   **Confrontos Assimétricos**: Caso uma equipa de 2 elementos compita contra uma de 3, o sistema deteta a falta de elementos na última ronda e permite re-selecionar de forma interativa um dos atletas anteriores da equipa menor para repetir o combate.
-    *   Decisão geral baseada no número de vitórias acumuladas. Em caso de empate, desempate automático pela contagem geral de pontos de bandeira.
+### 1. Modos de Competição Flexíveis (Irikumi & Kata)
+*   **Irikumi (Individual e Equipas)**:
+    *   **Individual**: Combates individuais à melhor de 3 rondas com aviso sonoro aos 15 segundos restantes.
+    *   **Equipa (Dojos)**: Equipas formadas por 2, 3 ou 4 atletas. O sistema suporta confrontos assimétricos detetando interativamente a necessidade de repetição de atletas.
+*   **Kata (Individual e Equipas)**:
+    *   Disputado à melhor de 1 ronda.
+    *   No formato por equipa, a equipa entra e compete em simultâneo (sem necessidade de ordenar atletas individuais).
+    *   As faltas/advertências e o temporizador encontram-se totalmente desativados e ocultados das janelas e painéis.
 
 ### 2. Bracket Dinâmico e Interativo
 *   Geração automática de chaves com potências de 2 (suporte a *Byes* automáticos para números ímpares ou incompletos de participantes).
@@ -31,16 +33,16 @@ Um agradecimento honorífico e profundo ao **Clube Karate Budo Dojo**. Esta apli
 
 ### 3. Scoreboard Premium & Apresentação (Dual-Screen)
 *   **Ecrã de Apresentação**: Janela desenhada para ser projetada ou exibida num segundo monitor (via HDMI/Projector), totalmente responsiva e livre de botões administrativos.
-*   **Controlo Symmetrical**: O rodapé exibe o número do Tatami ativo (canto esquerdo), o temporizador centralizado e o escalão/categoria da competição (canto direito).
+*   **Controlo Simétrico**: O rodapé exibe o número do Tatami ativo (canto esquerdo), o temporizador centralizado e o escalão/categoria da competição (canto direito).
 *   **Comandos de Visualização**:
     *   Atalho **F11** ou **Duplo Clique** para ativar o ecrã inteiro nativo, ocultando por completo a barra superior do sistema operativo.
     *   **Janela Arrastável**: Pode mover o ecrã de apresentação clicando e arrastando em qualquer ponto do seu fundo.
     *   Tecla **ESC** para reverter o ecrã inteiro.
 
-### 4. Gestão de Placar e Penalizações
-*   Deteção automática de desqualificações (5 faltas/penalidades aplicadas).
-*   Sistema de bandeiras dinâmico com exibição de bandeiras retangulares proeminentes.
-*   **Modo de Confirmação**: Ao fim de cada ronda, os pontos e bandeiras mantêm-se visíveis no ecrã de apresentação e só desaparecem quando o administrador clica em "OK" na confirmação da ronda.
+### 4. Painel de Controle e Organização
+*   **Lados Invertidos no Operador**: No painel administrativo da mesa de júri, o **AO (Azul)** situa-se do lado esquerdo e o **AKA (Vermelho)** do lado direito para acompanhar a perspetiva visual real de quem está sentado de frente para o tatami.
+*   **Temporizador de Irikumi**: Emissão de aviso sonoro automático (`warning.mp3`) exatamente aos 15 segundos restantes do combate.
+*   **Filtragem de Competições de Dois Níveis**: Menu "Competições Criadas" com filtros encadeados por modalidade (**Irikumi** / **Kata**) e localização (**Tatami 1**, **Tatami 2** e **Sem Tatami**) para uma melhor organização do evento.
 
 ---
 
